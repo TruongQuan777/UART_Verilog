@@ -8,26 +8,29 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
 );
   parameter iddle=2'b00,start=2'b01,data=2'b10,stop=2'b11;
   
-  reg [1:0] state;
-  reg [4:0] tick_counter;
-  reg [3:0] bit_counter;
+  reg [1:0] state = iddle;
+  reg [4:0] tick_counter = 0;
+  reg [3:0] bit_counter = 0;
+  reg tx_out = 1;
+
   
   always @(posedge clk)
     begin
-      if(state==iddle)
+      if (state == iddle) 
         begin
-          if(tx_start)
+          if (tx_start) 
             begin
-              tx_out<=1;
-              state<=iddle;
-            end
-          else
+              tx_out <= 0; // start bit
+              tick_counter <= 0;
+              state <= start;
+            end 
+          else 
             begin
-              tx_out<=0;
-              tick_counter<=0;
-              state<=start;
+              tx_out <= 1;
+              state <= iddle;
             end
-        end
+         end
+
       else if(state==start)
         begin
           if(tick)
@@ -36,6 +39,7 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
                 begin
                   bit_counter<=0;
                   tick_counter<=0;
+                  tx_out<=tx_in[0];
                   state<=data;
                 end
               else
@@ -49,14 +53,15 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
               state<=start;
             end
         end
+        
       else if(state==data)
         begin
           if(tick)
             begin
-              if(tick_counter==15)
+              if(tick_counter==oversample_rate-1)
                 begin
                   tick_counter<=0;
-                  tx_out<=tx_in[bit_counter];
+                  tx_out<=tx_in[bit_counter+1];
                   if(bit_counter==DATA_WIDTH-1)
                     begin
                       tx_out<=1;
@@ -75,7 +80,6 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
                 end
             end
           else state<=data;
-
         end
       else
         begin
@@ -100,4 +104,3 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
   assign tx_dv=(state==iddle);
     
 endmodule
-
