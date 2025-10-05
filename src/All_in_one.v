@@ -42,14 +42,14 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
     input clk,
     input tick,
     input rx_in,
-    output reg [DATA_WIDTH-1:0] rx_out,
+    output reg [DATA_WIDTH-1:0] rx_out=0,
     output rx_dv
 );
   parameter iddle=2'b00,start=2'b01,data=2'b10,stop=2'b11;
   
-  reg [1:0] state=iddle;
-  reg [4:0] tick_counter=0;
-  reg [3:0] bit_counter=0;
+  reg [1:0] state = iddle;
+  reg [4:0] tick_counter = 0;
+  reg [3:0] bit_counter = 0;
 
   
   always @(posedge clk)
@@ -59,9 +59,9 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
           if(rx_in==0)
             begin
               tick_counter<=0;
-              state<=iddle;
+              state<=start;
             end
-          else state<=start;
+          else state<=iddle;
         end
       
       else if (state==start)
@@ -128,7 +128,7 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
           else state<=stop;
         end
     end
-  assign tx_dv=(state==iddle);
+  assign rx_dv=(state==iddle);
 
 endmodule
 
@@ -142,26 +142,29 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
 );
   parameter iddle=2'b00,start=2'b01,data=2'b10,stop=2'b11;
   
-  reg [1:0] state;
-  reg [4:0] tick_counter;
-  reg [3:0] bit_counter;
+  reg [1:0] state = iddle;
+  reg [4:0] tick_counter = 0;
+  reg [3:0] bit_counter = 0;
+  reg tx_out = 1;
+
   
   always @(posedge clk)
     begin
-      if(state==iddle)
+      if (state == iddle) 
         begin
-          if(tx_start)
+          if (tx_start) 
             begin
-              tx_out<=1;
-              state<=iddle;
-            end
-          else
+              tx_out <= 0; // start bit
+              tick_counter <= 0;
+              state <= start;
+            end 
+          else 
             begin
-              tx_out<=0;
-              tick_counter<=0;
-              state<=start;
+              tx_out <= 1;
+              state <= iddle;
             end
-        end
+         end
+
       else if(state==start)
         begin
           if(tick)
@@ -183,11 +186,12 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
               state<=start;
             end
         end
+        
       else if(state==data)
         begin
           if(tick)
             begin
-              if(tick_counter==15)
+              if(tick_counter==oversample_rate-1)
                 begin
                   tick_counter<=0;
                   tx_out<=tx_in[bit_counter];
@@ -238,13 +242,13 @@ module baudrate_generator(
     input clk,
     output tick
 );
-    parameter baud_rate=9600,
+    parameter baud_rate=115200,
 			  clk_rate=50000000,
 			  oversample_rate=16,
 			  max_counter=clk_rate/(baud_rate*oversample_rate),
   			  counter_width=$clog2(max_counter);
     
-    reg [counter_width-1:0] counter; 
+    reg [counter_width-1:0] counter=0; 
     
     always @(posedge clk)
         begin
@@ -254,3 +258,5 @@ module baudrate_generator(
     
   assign tick=(counter==max_counter-1);
 endmodule
+
+
