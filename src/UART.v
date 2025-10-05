@@ -37,4 +37,3 @@ module uart #(parameter DATA_WIDTH=8)(
     );
     
 endmodule
-
