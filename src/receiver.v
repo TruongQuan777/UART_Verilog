@@ -2,14 +2,14 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
     input clk,
     input tick,
     input rx_in,
-    output reg [DATA_WIDTH-1:0] rx_out,
+    output reg [DATA_WIDTH-1:0] rx_out=0,
     output rx_dv
 );
   parameter iddle=2'b00,start=2'b01,data=2'b10,stop=2'b11;
   
-  reg [1:0] state=iddle;
-  reg [4:0] tick_counter=0;
-  reg [3:0] bit_counter=0;
+  reg [1:0] state = iddle;
+  reg [4:0] tick_counter = 0;
+  reg [3:0] bit_counter = 0;
 
   
   always @(posedge clk)
@@ -19,9 +19,9 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
           if(rx_in==0)
             begin
               tick_counter<=0;
-              state<=iddle;
+              state<=start;
             end
-          else state<=start;
+          else state<=iddle;
         end
       
       else if (state==start)
@@ -88,7 +88,6 @@ module receiver #(parameter DATA_WIDTH=8,oversample_rate=16)(
           else state<=stop;
         end
     end
-  assign tx_dv=(state==iddle);
-  
-endmodule
+  assign rx_dv=(state==iddle);
 
+endmodule
