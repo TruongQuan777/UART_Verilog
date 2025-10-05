@@ -173,6 +173,7 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
                 begin
                   bit_counter<=0;
                   tick_counter<=0;
+                  tx_out<=tx_in[0];
                   state<=data;
                 end
               else
@@ -194,7 +195,7 @@ module transmitter #(parameter DATA_WIDTH=8,oversample_rate=16)(
               if(tick_counter==oversample_rate-1)
                 begin
                   tick_counter<=0;
-                  tx_out<=tx_in[bit_counter];
+                  tx_out<=tx_in[bit_counter+1];
                   if(bit_counter==DATA_WIDTH-1)
                     begin
                       tx_out<=1;
